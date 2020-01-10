@@ -1,4 +1,4 @@
-var Bleno = require('./../lib/bleno');
+var Bleno = require('../lib/bleno/bleno');
 
 var BleNodes = require('./bleNodes');
 var BleJsonTransport = require('./bleJsonTransport');
