@@ -161,7 +161,7 @@ BleProvider.prototype._setup = function(name, advertisement) {
             if (typeof advertisement !== 'undefined') {
                 var eirPayload = _this._createEIRPayload(name, advertisement);
 
-                _this.bleno.startAdvertisingWithEIRData(eirPayload.advertisement, eirPayload.scanData);
+                _this.bleno.startAdvertisingWithEIRData(eirPayload.advertisement, eirPayload.scanData, startAdvertCb);
             } else {
                 var serviceUids = _.chain(nodesDefs)
                     .map('service')
