@@ -1,5 +1,9 @@
 <script type="text/x-red" data-template-name="ble-in">
     <div class="form-row">
+        <label for="node-input-localName">Name</label>
+        <input type="text" id="node-input-localName" placeholder="Node name (optional)">
+    </div>
+    <div class="form-row">
         <label for="node-input-bluetooth">Device</label>
         <input type="text" id="node-input-bluetooth">
     </div>
@@ -22,6 +26,7 @@
         category: 'network',
         color: '#55adff',
         defaults: {
+            localName: { value: '' },
             bluetooth: { type: 'ble-config', required: true },
             service: { type: 'ble-service', required: true },
             characteristic: { value: '', required: true }
@@ -30,7 +35,7 @@
         inputs: 0,
         outputs: 1,
         label: function() {
-            return this.name || 'ble-in';
+            return this.localName || 'ble-in';
         }
     });
 </script>
