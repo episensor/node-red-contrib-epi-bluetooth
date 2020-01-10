@@ -1,0 +1,26 @@
+{
+  "name": "node-red-contrib-epi-bluetooth",
+  "version": "0.0.1",
+  "description": "A Node-RED node to set up a Bluetooth LE peripheral.",
+  "author": "Brendan Carroll",
+  "keywords": [
+    "node-red",
+    "episensor",
+    "bluetooth",
+    "ble"
+  ],
+  "node-red": {
+    "nodes": {
+      "ble-in": "nodes/ble-in/ble-in.js",
+      "ble-notify": "nodes/ble-notify/ble-notify.js",
+      "ble-config": "nodes/ble-config/ble-config.js"
+    }
+  },
+  "dependencies": {
+    "@abandonware/bleno": "~0.5.1-1",
+    "debug": "^4.1.1",
+    "lodash": "^4.17.15",
+    "uuid": "^3.3.3"
+  },
+  "license": "Proprietary"
+}

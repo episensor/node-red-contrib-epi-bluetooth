@@ -1,0 +1,25 @@
+<script type="text/javascript">
+    RED.nodes.registerType('bluetooth-config',{
+        category: 'config',
+        defaults: {
+            name: { value: 'Bluetooth Device', required: true },
+            advertisment: { value: 'Advertisement Data', required: true },
+        },
+        label: function() {
+            return 'BLE device: ' + this.name;
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="bluetooth-config">
+    <div class="form-row">
+        <label for="node-config-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-config-input-name" />
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-advertisement">
+            <i class="icon-bookmark"></i> Advertisement
+        </label>
+        <textarea id="node-config-input-advertisement"></textarea>
+    </div>
+</script>

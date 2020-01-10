@@ -1,0 +1,26 @@
+<script type="text/javascript">
+    RED.nodes.registerType('epi-bluetooth',{
+        category: 'function',
+        color: '#e2d96e',
+        defaults: {
+            name: {value:""}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "white-globe.png",
+        label: function() {
+            return this.name||"epi-bluetooth";
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="epi-bluetooth">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="epi-bluetooth">
+    <p>A simple node that changes the message payloads to Hello</p>
+</script>

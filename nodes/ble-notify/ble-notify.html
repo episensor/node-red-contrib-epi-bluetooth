@@ -1,0 +1,43 @@
+<script type="text/x-red" data-template-name="ble-notify">
+    <div class="form-row">
+        <label for="node-input-bluetooth">
+            <i class="fa fa-bluetooth"></i> <span>Config</span>
+        </label>
+        <input type="text" id="node-input-bluetooth">
+    </div>
+    <div class="form-row">
+        <label for="node-input-service">
+            <i class="fa fa-cubes"></i> Service
+        </label>
+        <input type="text" id="node-input-service" placeholder="Service UID">
+    </div>
+    <div class="form-row">
+        <label for="node-input-characteristic">
+            <i class="fa fa-cube"></i> Character.
+        </label>
+        <input type="text" id="node-input-characteristic" placeholder="Characteristic UID">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="ble-notify">
+    <p>A simple node that changes the message payloads to Hello</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('ble-notify', {
+        category: 'network',
+        color: '#e2d96e',
+        name: 'BLE Notify',
+        defaults: {
+            bluetooth: { type:'bluetooth-config', required: true },
+            service: { value: '', required: true },
+            characteristic: { value: '', required: true }
+        },
+        inputs: 1,
+        outputs: 0,
+        icon: 'white-globe.png',
+        label: function() {
+            return this.name || 'ble-notify';
+        }
+    });
+</script>
