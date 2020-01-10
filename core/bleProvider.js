@@ -67,7 +67,7 @@ BleProvider.prototype.initialize = function(name, advertisement) {
         var _this = this;
         
         _this.name = name || '!Undefined Name';
-        _this.advertisement = advertisement || '';
+        _this.advertisement = advertisement;
 
         return new Promise(function initializeHandler(resolve, reject) {
             clearTimeout(this.initTimeout);
@@ -96,14 +96,8 @@ BleProvider.prototype._setup = function(name, advertisement) {
                 });
             }
             // Start advertising
-            const nodesDefs = Array.from(_this.bleNodes.nodes.values());
-            
-            var serviceUids = _.chain(nodesDefs)
-                .map('service')
-                .uniq()
-                .value();
-            
-            _this.bleno.startAdvertising(name, serviceUids, function startAdvertCb() {
+            const nodesDefs = Array.from(_this.bleNodes.nodes.values());            
+            var startAdvertCb = function() {
                 _this.isAdvertising = true;
 
                 // Build service/characteristics structure
@@ -162,14 +156,50 @@ BleProvider.prototype._setup = function(name, advertisement) {
                 _this.bleno.setServices(services, function() {
                     resolve();
                 });
-            });
+            }
+
+            if (typeof advertisement !== 'undefined') {
+                var eirPayload = _this._createEIRPayload(name, advertisement);
+
+                _this.bleno.startAdvertisingWithEIRData(eirPayload.advertisement, eirPayload.scanData);
+            } else {
+                var serviceUids = _.chain(nodesDefs)
+                    .map('service')
+                    .uniq()
+                    .value();
+                
+                _this.bleno.startAdvertising(name, serviceUids, startAdvertCb);
+            }
         } else {
             reject('Can\'t start advertising - adapter is not powered');
         }
     });
 }
 
-BleProvider.prototype._createEIRPayload = function(name, advertisement, services) {
+BleProvider.prototype._createEIRPayload = function(name, advertisement) {
+    var advertisementData = new Buffer(4 + advertisement.length);
+    var scanData = new Buffer(2 + name.length);
+
+    // Fill Advertisement data
+    advertisementData.writeUInt8(2, 0);
+    advertisementData.writeUInt8(0x00, 1);
+    advertisementData.writeUInt8(0x16, 2);
+
+    var advertBuffer = new Buffer(advertisement);
+    advertisementData.writeUInt8(advertBuffer.length, 3);
+    advertBuffer.copy(advertisementData, 4);
+
+    // Generate Name buffer and copy it to scanData
+    var nameBuffer = new Buffer(name);
+
+    scanData.writeUInt8(1 + nameBuffer.length, 0);
+    scanData.writeUInt8(0x08, 1);
+    nameBuffer.copy(scanData, 2);
+
+    return {
+        scanData: scanData,
+        advertisement: advertisementData,
+    };
 }
 
 var instance = null;
