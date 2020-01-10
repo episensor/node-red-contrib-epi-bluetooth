@@ -1,20 +1,14 @@
 <script type="text/x-red" data-template-name="ble-notify">
     <div class="form-row">
-        <label for="node-input-bluetooth">
-            <i class="fa fa-bluetooth"></i> <span>Config</span>
-        </label>
+        <label for="node-input-bluetooth">Device</label>
         <input type="text" id="node-input-bluetooth">
     </div>
     <div class="form-row">
-        <label for="node-input-service">
-            <i class="fa fa-cubes"></i> Service
-        </label>
-        <input type="text" id="node-input-service" placeholder="Service UID">
+        <label for="node-input-service">Service</label>
+        <input type="text" id="node-input-service">
     </div>
     <div class="form-row">
-        <label for="node-input-characteristic">
-            <i class="fa fa-cube"></i> Character.
-        </label>
+        <label for="node-input-characteristic">Character.</label>
         <input type="text" id="node-input-characteristic" placeholder="Characteristic UID">
     </div>
 </script>
@@ -26,16 +20,16 @@
 <script type="text/javascript">
     RED.nodes.registerType('ble-notify', {
         category: 'network',
-        color: '#e2d96e',
+        color: '#55adff',
         name: 'BLE Notify',
         defaults: {
-            bluetooth: { type:'bluetooth-config', required: true },
-            service: { value: '', required: true },
+            bluetooth: { type: 'ble-config', required: true },
+            service: { type: 'ble-service', required: true },
             characteristic: { value: '', required: true }
         },
+        icon: 'bluetooth.png',
         inputs: 1,
         outputs: 0,
-        icon: 'white-globe.png',
         label: function() {
             return this.name || 'ble-notify';
         }

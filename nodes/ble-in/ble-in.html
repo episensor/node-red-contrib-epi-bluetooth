@@ -1,20 +1,14 @@
 <script type="text/x-red" data-template-name="ble-in">
     <div class="form-row">
-        <label for="node-input-bluetooth">
-            <i class="fa fa-bluetooth"></i> <span>Config</span>
-        </label>
+        <label for="node-input-bluetooth">Device</label>
         <input type="text" id="node-input-bluetooth">
     </div>
     <div class="form-row">
-        <label for="node-input-service">
-            <i class="fa fa-cubes"></i> Service
-        </label>
-        <input type="text" id="node-input-service" placeholder="Service UID">
+        <label for="node-input-service">Service</label>
+        <input type="text" id="node-input-service">
     </div>
     <div class="form-row">
-        <label for="node-input-characteristic">
-            <i class="fa fa-cube"></i> Character.
-        </label>
+        <label for="node-input-characteristic">Character.</label>
         <input type="text" id="node-input-characteristic" placeholder="Characteristic UID">
     </div>
 </script>
@@ -26,15 +20,15 @@
 <script type="text/javascript">
     RED.nodes.registerType('ble-in', {
         category: 'network',
-        color: '#e2d96e',
+        color: '#55adff',
         defaults: {
-            bluetooth: { type:'bluetooth-config', required: true },
-            service: { value: '', required: true },
+            bluetooth: { type: 'ble-config', required: true },
+            service: { type: 'ble-service', required: true },
             characteristic: { value: '', required: true }
         },
+        icon: 'bluetooth.png',
         inputs: 0,
         outputs: 1,
-        icon: 'white-globe.png',
         label: function() {
             return this.name || 'ble-in';
         }

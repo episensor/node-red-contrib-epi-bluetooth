@@ -13,7 +13,8 @@
     "nodes": {
       "ble-in": "nodes/ble-in/ble-in.js",
       "ble-notify": "nodes/ble-notify/ble-notify.js",
-      "ble-config": "nodes/ble-config/ble-config.js"
+      "ble-config": "nodes/ble-config/ble-config.js",
+      "ble-service": "nodes/ble-service/ble-service.js"
     }
   },
   "dependencies": {

@@ -7,10 +7,11 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, config);
         var node = this;
         var bleConfig = RED.nodes.getNode(config.bluetooth);
+        var bleService = RED.nodes.getNode(config.service);
         var bleNodes = BleNodes.getBleNodes(RED);
         var bleProvider = BleProvider.getBleProvider(RED);
 
-        node.serviceUid = config.service;
+        node.serviceUid = bleService.uuid;
         node.characteristicUid = config.characteristic;
         node.bleConfig = {
             name: bleConfig.name,

@@ -1,5 +1,5 @@
 <script type="text/javascript">
-    RED.nodes.registerType('bluetooth-config',{
+    RED.nodes.registerType('ble-config',{
         category: 'config',
         defaults: {
             name: { value: 'Bluetooth Device', required: true },
@@ -11,14 +11,14 @@
     });
 </script>
 
-<script type="text/x-red" data-template-name="bluetooth-config">
+<script type="text/x-red" data-template-name="ble-config">
     <div class="form-row">
-        <label for="node-config-input-name"><i class="icon-bookmark"></i> Name</label>
+        <label for="node-config-input-name">Name</label>
         <input type="text" id="node-config-input-name" />
     </div>
     <div class="form-row">
         <label for="node-config-input-advertisement">
-            <i class="icon-bookmark"></i> Advertisement
+            Advertisement
         </label>
         <textarea id="node-config-input-advertisement"></textarea>
     </div>
