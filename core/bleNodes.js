@@ -4,15 +4,25 @@ var BleNodes = function(nodeRed) {
     this.nodes = new Map();
     this.nodeRed = nodeRed;
     this.services = [];
+
+    this.callbacks = {
+        onNodeAdded: function() { },
+        onCharacteristicRemoved: function() { },
+        onServiceRemoved: function() { }
+    };
 }
 
+/**
+ * Will register the node and return an interface
+ * object which should be populated with isInitialized
+ * and notify() by the provider
+ */
 BleNodes.prototype.registerNode = function(
     nodeId,
     service,
     characteristic,
     callbacks,
     properties,
-    descriptors,
 ) {
     var serviceUid = service.replace(/-/g, '');
     var characteristicUid = characteristic.replace(/-/g, '');
@@ -52,6 +62,13 @@ BleNodes.prototype.registerNode = function(
         });
     }
 
+    // Notify
+    this.callbacks.onNodeAdded(
+        serviceUid,
+        characteristicUid,
+        nodeId,
+    );
+
     return interface;
 }
 
@@ -66,7 +83,7 @@ BleNodes.prototype.destroyNode = function(nodeUid) {
         if (charToDeleteIndex >= 0) {
             service.characteristics.splice(charToDeleteIndex, 1);
 
-            // TODO: Reinit device
+            this.callbacks.onCharacteristicRemoved(nodeDef.characteristic);
         }
 
         // If the service is out of characteristics - remove the service
@@ -74,14 +91,10 @@ BleNodes.prototype.destroyNode = function(nodeUid) {
             var serviceToDeleteIndex = _.findIndex(this.services, { uid: nodeDef.service });
             this.services.splice(serviceToDeleteIndex, 1);
 
-            // TODO: Reinit device
+            this.callbacks.onServiceRemoved(nodeDef.service);
         }
 
         this.nodes.delete(nodeUid);
-    }
-
-    if (this.nodes.size === 0) {
-        // TODO: internal event should be called to close the device
     }
 }
 

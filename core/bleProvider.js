@@ -15,6 +15,7 @@ var BleProvider = function(bleNodes, nodeRed) {
     this.initTimeout;
     this.isAdapterPowered = false;
     this.isAdvertising = false;
+    this.isConnected = false;
     this.bleNodes = bleNodes;
     this.bleno = new Bleno();
     this.bleJsonTransport = new BleJsonTransport();
@@ -22,24 +23,40 @@ var BleProvider = function(bleNodes, nodeRed) {
 
     var _this = this;
 
+    // Bleno Event Handlers ---------------------
     this.bleno.on('stateChange', function bleStateChange(state) {
-        console.log('Adapter state changed: ' + state);
         if (state === 'poweredOn') {
-            console.log('adapter powered on');
             _this.isAdapterPowered = true;
+        };
+        if (state === 'poweredOff') {
+            _this.isAdapterPowered = false;
         };
     });
 
-    this.bleno.on('disconnect', function bleDisconnected() {
-        console.log('disconnected');
+    this.bleno.on('accept', function bleAccepted() {
+        this.isConnected = true;
     });
 
-    this.bleno.on('rssiUpdate', function(rssi) {
-        console.log('RSSI updated ' + rssi);
+    this.bleno.on('disconnect', function bleDisconnected() {
+        this.isConnected = false;
     });
-    this.bleno.on('advertisingStop', function() {
-        console.log('Advertisong stopped!');
-    });
+
+    // Node Callback Handlers -------------------
+    this.bleNodes.callbacks.onCharacteristicRemoved = function() {
+        _this._setup();
+    };
+
+    this.bleNodes.callbacks.onServiceRemoved = function() {
+        // If there are no nodes - reset and stop advertising
+        if (_this.bleNodes.nodes.length === 0) {
+            _this.disconnect();
+            _this.setServices([]);
+            _this.stopAdvertising();
+            _this.isAdvertising = false;
+        } else {
+            _this._setup();
+        }
+    };
 };
 
 BleProvider.prototype.initialize = function(name, advertisement) {
@@ -146,45 +163,19 @@ BleProvider.prototype._setup = function(name, advertisement) {
                     resolve();
                 });
             });
-            /*
-            var advBuffer = Buffer.from(advertisement, 'utf-8');
-
-            var nameBuffer = Buffer.from(name, 'utf-8');
-            var scanBuffer = new Buffer(nameBuffer.length + 2);
-            scanBuffer.writeUInt8(nameBuffer.length + 1);
-            scanBuffer.writeUInt8(0x08, 1);
-
-            _this.bleno.startAdvertisingWithEIRData(advBuffer, scanBuffer, function startAdvertCb() {
-                _this.isAdvertising = true;
-                resolve();
-            });
-            */
         } else {
             reject('Can\'t start advertising - adapter is not powered');
         }
     });
 }
 
-//BleProvider.prototype.
-
 BleProvider.prototype._createEIRPayload = function(name, advertisement, services) {
-}
-
-/**
- * 
- */
-BleProvider.prototype.registerHandler = function(config) {
-
-}
-
-BleProvider.prototype.destroy = function() {
-
 }
 
 var instance = null;
 module.exports.getBleProvider = function(RED) {
     if (!instance) {
-        var bleNodes = BleNodes.getBleNodes();
+        var bleNodes = BleNodes.getBleNodes(RED);
         instance = new BleProvider(bleNodes, RED);
     }
     return instance;
