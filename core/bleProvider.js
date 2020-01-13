@@ -8,6 +8,7 @@ var _ = require('lodash');
 // Defines after what time the device should start
 // the initialization after receiving the last node definition
 var INIT_DEBOUNCE_TIME = 100;
+var REINIT_TIMEOUT = 10000;
 
 var BleProvider = function(bleNodes, nodeRed) {
     this.name =  '';
@@ -17,30 +18,14 @@ var BleProvider = function(bleNodes, nodeRed) {
     this.isAdvertising = false;
     this.isConnected = false;
     this.bleNodes = bleNodes;
-    this.bleno = new Bleno();
     this.bleJsonTransport = new BleJsonTransport();
     this.nodeRed = nodeRed;
 
+    this.reinitRetryInterval;
+    this.reinitAttempt = 0;
+
     var _this = this;
-
-    // Bleno Event Handlers ---------------------
-    this.bleno.on('stateChange', function bleStateChange(state) {
-        if (state === 'poweredOn') {
-            _this.isAdapterPowered = true;
-        };
-        if (state === 'poweredOff') {
-            _this.isAdapterPowered = false;
-        };
-    });
-
-    this.bleno.on('accept', function bleAccepted() {
-        this.isConnected = true;
-    });
-
-    this.bleno.on('disconnect', function bleDisconnected() {
-        this.isConnected = false;
-    });
-
+    
     // Node Callback Handlers -------------------
     this.bleNodes.callbacks.onCharacteristicRemoved = function() {
         _this._setup();
@@ -70,18 +55,69 @@ BleProvider.prototype.initialize = function(name, advertisement) {
         _this.advertisement = advertisement;
 
         return new Promise(function initializeHandler(resolve, reject) {
-            clearTimeout(this.initTimeout);
-            this.initTimeout = setTimeout(function() {
-                _this._setup(
-                        _this.name,
-                        _this.advertisement
-                    )
-                    .then(resolve);
+            var initialize = function() {
+                _this._initializeBleno(function powerOnCb() {
+                    _this.nodeRed.log.info('BleProvider: Bluetooth successfully initialized.');
+
+                    // Made it to powerOn - retrying no longer needed
+                    clearInterval(_this.reinitRetryInterval);
+
+                    _this._setup(_this.name, _this.advertisement)
+                        .then(function setupComplete() {
+                            _this.nodeRed.log.info('BleProvider: Services and Characteristics registerd.');
+                        });
+                });
+            };
+
+            // Node registration debounce
+            clearTimeout(_this.initTimeout);
+            // Bluetooth reinitialization interval
+            clearInterval(_this.reinitRetryInterval);
+
+            // Timeout until all the nodes complete registration,
+            // after the last one registers - initialize BLE
+            _this.initTimeout = setTimeout(function() {
+                // If the adapter won't power on within REINIT_TIMEOUT - retry
+                _this.reinitRetryInterval = setInterval(function reinitCb() {
+                    _this.nodeRed.log.info('BleProvider: Failed to initialized Bluetooth, reinitializing...');
+
+                    initialize();
+                }, REINIT_TIMEOUT);
+
+                initialize();
             }, INIT_DEBOUNCE_TIME);
         });
     }
 
     return Promise.resolve();
+}
+
+BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb) {
+    var _this = this;
+
+    _this.bleno = new Bleno();
+
+    // Bleno Event Handlers ---------------------
+    _this.bleno.on('stateChange', function bleStateChange(state) {
+        if (state === 'poweredOn') {
+            _this.isAdapterPowered = true;
+
+            if (adapterPoweredOnCb) {
+                adapterPoweredOnCb();
+            }
+        };
+        if (state === 'poweredOff') {
+            _this.isAdapterPowered = false;
+        };
+    });
+
+    _this.bleno.on('accept', function bleAccepted() {
+        this.isConnected = true;
+    });
+
+    _this.bleno.on('disconnect', function bleDisconnected() {
+        this.isConnected = false;
+    });
 }
 
 BleProvider.prototype._setup = function(name, advertisement) {
