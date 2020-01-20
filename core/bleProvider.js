@@ -141,7 +141,6 @@ BleProvider.prototype._setup = function(name, advertisement) {
                                     }
                                 )
                                 callbacks.onWriteRequest = function providerWriteRequest(data, offset, wR, cb) {
-                                    console.log(data);
                                     var isOk = appendChunk(data);
                                     cb(
                                         isOk ?
