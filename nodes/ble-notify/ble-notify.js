@@ -26,7 +26,7 @@ module.exports = function (RED) {
             ['notify']
         );
 
-        bleProvider.initialize(
+        bleProvider.setDeviceConfig(
             node.bleConfig.name,
             node.bleConfig.advertisement
         );
@@ -40,7 +40,7 @@ module.exports = function (RED) {
         });
 
         this.on('close', function bleInputClose() {
-            bleNodes.destroy(node.id);
+            bleNodes.destroyNode(node.id);
         });
     }
     RED.nodes.registerType("ble-notify", BluetoothLeNotify);

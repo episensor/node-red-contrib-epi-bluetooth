@@ -5,9 +5,6 @@ var BleJsonTransport = require('./bleJsonTransport');
 
 var _ = require('lodash');
 
-// Defines after what time the device should start
-// the initialization after receiving the last node definition
-var INIT_DEBOUNCE_TIME = 100;
 var REINIT_TIMEOUT = 10000;
 
 var BleProvider = function(bleNodes, nodeRed) {
@@ -23,73 +20,62 @@ var BleProvider = function(bleNodes, nodeRed) {
 
     this.reinitRetryInterval;
     this.reinitAttempt = 0;
-
-    var _this = this;
-    
-    // Node Callback Handlers -------------------
-    this.bleNodes.callbacks.onCharacteristicRemoved = function() {
-        _this._setup();
-    };
-
-    this.bleNodes.callbacks.onServiceRemoved = function() {
-        // If there are no nodes - reset and stop advertising
-        if (_this.bleNodes.nodes.length === 0) {
-            _this.disconnect();
-            _this.setServices([]);
-            _this.stopAdvertising();
-            _this.isAdvertising = false;
-        } else {
-            _this._setup();
-        }
-    };
 };
 
-BleProvider.prototype.initialize = function(name, advertisement) {
-    if (
+BleProvider.prototype.setDeviceConfig = function(name, advertisement) {
+    if (!this.name && !this.advertisement) {
+        this.name = name || '!Undefined Name';
+        this.advertisement = advertisement;
+    } else if (
         this.name !== name ||
         this.advertisement !== advertisement
     ) {
-        var _this = this;
-        
-        _this.name = name || '!Undefined Name';
-        _this.advertisement = advertisement;
+        this.nodeRed.log.warn('BleProvider: All of the BLE Nodes need to have the same device attached. Using the first configuration found...');
+    }
+}
 
-        return new Promise(function initializeHandler(resolve, reject) {
-            var initialize = function() {
+BleProvider.prototype.initialize = function() {
+    var _this = this;
+
+    return new Promise(function initializeHandler(resolve, reject) {
+        var initialize = function() {
+            // If bleno is not instantiated yet - try to create it and wait for powerOn
+            if (!_this.bleno) {
                 _this._initializeBleno(function powerOnCb() {
                     _this.nodeRed.log.info('BleProvider: Bluetooth successfully initialized.');
-
+    
                     // Made it to powerOn - retrying no longer needed
                     clearInterval(_this.reinitRetryInterval);
-
+    
                     _this._setup(_this.name, _this.advertisement)
                         .then(function setupComplete() {
                             _this.nodeRed.log.info('BleProvider: Services and Characteristics registerd.');
-                        });
+                        })
+                        .then(resolve);
                 });
-            };
+            // If an instance is already present - just recreate the Services / Characteristics
+            } else {
+                // Bluetooth reinitialization interval
+                clearInterval(_this.reinitRetryInterval);
 
-            // Node registration debounce
-            clearTimeout(_this.initTimeout);
-            // Bluetooth reinitialization interval
-            clearInterval(_this.reinitRetryInterval);
+                _this._setup(_this.name, _this.advertisement)
+                    .then(function reSetupComplete() {
+                        _this.nodeRed.log.info('BleProvider: Services and Characteristics re-registerd.');
+                    })
+                    .then(resolve);
+            }
+        };
 
-            // Timeout until all the nodes complete registration,
-            // after the last one registers - initialize BLE
-            _this.initTimeout = setTimeout(function() {
-                // If the adapter won't power on within REINIT_TIMEOUT - retry
-                _this.reinitRetryInterval = setInterval(function reinitCb() {
-                    _this.nodeRed.log.info('BleProvider: Failed to initialized Bluetooth, reinitializing...');
+        // If the adapter won't power on within REINIT_TIMEOUT - retry
+        _this.reinitRetryInterval = setInterval(function reinitCb() {
+            _this.nodeRed.log.info('BleProvider: Failed to initialize Bluetooth, reinitializing...');
 
-                    initialize();
-                }, REINIT_TIMEOUT);
+            initialize();
+        }, REINIT_TIMEOUT);
 
-                initialize();
-            }, INIT_DEBOUNCE_TIME);
-        });
-    }
-
-    return Promise.resolve();
+        // Try to initialize early
+        initialize();
+    });
 }
 
 BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb) {
@@ -155,6 +141,7 @@ BleProvider.prototype._setup = function(name, advertisement) {
                                     }
                                 )
                                 callbacks.onWriteRequest = function providerWriteRequest(data, offset, wR, cb) {
+                                    console.log(data);
                                     var isOk = appendChunk(data);
                                     cb(
                                         isOk ?
