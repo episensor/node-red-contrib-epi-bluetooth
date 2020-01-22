@@ -31,10 +31,7 @@ module.exports = function (RED) {
             ['write', 'writeWithoutResponse']
         );
 
-        bleProvider.setDeviceConfig(
-            node.bleConfig.name,
-            node.bleConfig.advertisement
-        );
+        bleProvider.setDeviceConfig(node.bleConfig.name);
 
         this.on('close', function bleInputClose() {
             bleNodes.destroyNode(node.id);

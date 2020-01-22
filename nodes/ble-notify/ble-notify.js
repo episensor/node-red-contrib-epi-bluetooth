@@ -26,10 +26,7 @@ module.exports = function (RED) {
             ['notify']
         );
 
-        bleProvider.setDeviceConfig(
-            node.bleConfig.name,
-            node.bleConfig.advertisement
-        );
+        bleProvider.setDeviceConfig(node.bleConfig.name);
 
         this.on('input', function bleInput(msg) {
             if (bleInterface.isInitialized) {

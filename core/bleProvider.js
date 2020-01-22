@@ -23,15 +23,8 @@ var BleProvider = function(bleNodes, nodeRed) {
 };
 
 BleProvider.prototype.setDeviceConfig = function(name, advertisement) {
-    if (!this.name && !this.advertisement) {
-        this.name = name || '!Undefined Name';
-        this.advertisement = advertisement;
-    } else if (
-        this.name !== name ||
-        this.advertisement !== advertisement
-    ) {
-        this.nodeRed.log.warn('BleProvider: All of the BLE Nodes need to have the same device attached. Using the first configuration found...');
-    }
+    this.name = name || '!Undefined Name';
+    this.advertisement = advertisement;
 }
 
 BleProvider.prototype.initialize = function() {
@@ -40,10 +33,10 @@ BleProvider.prototype.initialize = function() {
     return new Promise(function initializeHandler(resolve, reject) {
         var initialize = function() {
             // If bleno is not instantiated yet - try to create it and wait for powerOn
-            if (!_this.bleno) {
+            if (!_this.isAdapterPowered) {
                 _this._initializeBleno(function powerOnCb() {
                     _this.nodeRed.log.info('BleProvider: Bluetooth successfully initialized.');
-    
+                    
                     // Made it to powerOn - retrying no longer needed
                     clearInterval(_this.reinitRetryInterval);
     
@@ -66,6 +59,8 @@ BleProvider.prototype.initialize = function() {
             }
         };
 
+        clearInterval(_this.reinitRetryInterval);
+
         // If the adapter won't power on within REINIT_TIMEOUT - retry
         _this.reinitRetryInterval = setInterval(function reinitCb() {
             _this.nodeRed.log.info('BleProvider: Failed to initialize Bluetooth, reinitializing...');
@@ -80,6 +75,11 @@ BleProvider.prototype.initialize = function() {
 
 BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb) {
     var _this = this;
+
+    // When reinitializing - remove the previous event listeners
+    if (_this.bleno) {
+        _this.bleno.removeAllListeners();
+    }
 
     _this.bleno = new Bleno();
 
@@ -189,7 +189,6 @@ BleProvider.prototype._setup = function(name, advertisement) {
                     .map('service')
                     .uniq()
                     .value();
-                
                 _this.bleno.startAdvertising(name, serviceUids, startAdvertCb);
             }
         } else {

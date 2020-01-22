@@ -3,29 +3,10 @@
         category: 'config',
         defaults: {
             name: { value: 'Bluetooth Device', required: true },
-            customAdvert: { value: false },
-            advertisement: { value: '' },
         },
         label: function() {
             return 'BLE device: ' + this.name;
         },
-        oneditprepare: function() {
-            var $inputCustomAdvCheck = $('#node-config-input-customAdvert'),
-                $advContentRow = $('#custom-advert-data-row'),
-                $inputAdvContent = $('#node-config-input-advertisement');
-
-            var dataToggler = function() {
-                if ($inputCustomAdvCheck.is(':checked')) {
-                    $advContentRow.show();
-                } else {
-                    $advContentRow.hide();
-                    $inputAdvContent.val('');
-                }
-            }
-            $inputCustomAdvCheck.change(dataToggler);
-
-            dataToggler();
-        }
     });
 </script>
 
@@ -33,29 +14,5 @@
     <div class="form-row">
         <label for="node-config-input-name">Name</label>
         <input type="text" id="node-config-input-name" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-advertisement">
-            Custom Advert.
-        </label>
-        <input
-            type="checkbox"
-            id="node-config-input-customAdvert"
-            style="width: auto; margin: 0"
-        />
-        <span style="color: #888">
-            &nbsp;
-            (Fills the advert. packet with custom data)
-        </span>
-    </div>
-    <div class="form-row" id="custom-advert-data-row">
-        <label for="node-config-input-advertisement">
-            Advert. Data
-        </label>
-        <textarea
-            id="node-config-input-advertisement"
-            maxlength="50"
-            style="vertical-align: top; width: 70%"
-        ></textarea>
     </div>
 </script>
