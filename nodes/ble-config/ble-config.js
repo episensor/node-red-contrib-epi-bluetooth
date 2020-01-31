@@ -4,6 +4,26 @@ module.exports = function(RED) {
     function BluetoothConfig(n) {
         RED.nodes.createNode(this, n);
         this.name = n.name;
+
+        var _this = this;
+        // Copies the fields from the array
+        // to this while checking if the value
+        // should be read as a string or pulled from
+        // the context
+        [
+            'infoName',
+            'infoVendor',
+            'infoSerial'
+        ].forEach(function(field) {
+            var fieldType = n[field + 'Type'];
+            var fieldValue = n[field];
+
+            if (fieldType === 'global') {
+                _this[field] = RED.util.parseContextStore(fieldValue);
+            } else if (fieldType === 'str') {
+                _this[field] = fieldValue;
+            }
+        });
     }
 
     RED.nodes.registerType('ble-config', BluetoothConfig);

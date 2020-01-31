@@ -2,6 +2,7 @@ var Bleno = require('../lib/bleno/bleno');
 
 var BleNodes = require('./bleNodes');
 var BleJsonTransport = require('./bleJsonTransport');
+var BleDevInfoServiceFactory = require('./bleDevInfoServiceFactory');
 
 var _ = require('lodash');
 
@@ -15,6 +16,7 @@ var BleProvider = function(bleNodes, nodeRed) {
     this.isAdvertising = false;
     this.isConnected = false;
     this.bleNodes = bleNodes;
+    this.bleDevServiceFactory = new BleDevInfoServiceFactory();
     this.bleJsonTransport = new BleJsonTransport();
     this.nodeRed = nodeRed;
 
@@ -22,9 +24,9 @@ var BleProvider = function(bleNodes, nodeRed) {
     this.reinitAttempt = 0;
 };
 
-BleProvider.prototype.setDeviceConfig = function(name, advertisement) {
+BleProvider.prototype.setDeviceConfig = function(name, deviceInfo) {
     this.name = name || '!Undefined Name';
-    this.advertisement = advertisement;
+    this.deviceInfo = deviceInfo;
 }
 
 BleProvider.prototype.initialize = function() {
@@ -40,7 +42,7 @@ BleProvider.prototype.initialize = function() {
                     // Made it to powerOn - retrying no longer needed
                     clearInterval(_this.reinitRetryInterval);
     
-                    _this._setup(_this.name, _this.advertisement)
+                    _this._setup(_this.name, _this.deviceInfo)
                         .then(function setupComplete() {
                             _this.nodeRed.log.info('BleProvider: Services and Characteristics registerd.');
                         })
@@ -51,7 +53,7 @@ BleProvider.prototype.initialize = function() {
                 // Bluetooth reinitialization interval
                 clearInterval(_this.reinitRetryInterval);
 
-                _this._setup(_this.name, _this.advertisement)
+                _this._setup(_this.name, _this.deviceInfo)
                     .then(function reSetupComplete() {
                         _this.nodeRed.log.info('BleProvider: Services and Characteristics re-registerd.');
                     })
@@ -106,7 +108,7 @@ BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb) {
     });
 }
 
-BleProvider.prototype._setup = function(name, advertisement) {
+BleProvider.prototype._setup = function(name, deviceInfo) {
     var _this = this;
 
     return new Promise(function setupHandler(resolve, reject) {
@@ -123,7 +125,7 @@ BleProvider.prototype._setup = function(name, advertisement) {
                 _this.isAdvertising = true;
 
                 // Build service/characteristics structure
-                var services = _this.bleNodes.services.map(function serviceMapIterator(serviceDef) {
+                var commsServices = _this.bleNodes.services.map(function serviceMapIterator(serviceDef) {
                     var characteristics =
                         serviceDef.characteristics.map(function characteristicMapIterator(charDef) {
                             // Define callbacks and properties based on available callbacks
@@ -174,6 +176,16 @@ BleProvider.prototype._setup = function(name, advertisement) {
                         characteristics: characteristics,
                     });
                 });
+
+                var services = commsServices;
+
+                // If deviceInfo is provided - create service for exposing it
+                // and merge it with other services
+                if (deviceInfo) {
+                    var deviceInfoService =
+                        _this.bleDevServiceFactory.createService(_this.bleno, deviceInfo);
+                    services = services.concat([deviceInfoService]);
+                }
 
                 _this.bleno.setServices(services, function() {
                     resolve();
@@ -227,6 +239,7 @@ var instance = null;
 module.exports.getBleProvider = function(RED) {
     if (!instance) {
         var bleNodes = BleNodes.getBleNodes(RED);
+
         instance = new BleProvider(bleNodes, RED);
     }
     return instance;

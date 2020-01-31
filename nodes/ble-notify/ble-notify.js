@@ -15,7 +15,11 @@ module.exports = function (RED) {
         node.characteristicUid = config.characteristic;
         node.bleConfig = {
             name: bleConfig.name,
-            advertisement: bleConfig.advertisement,
+            deviceInfo: {
+                vendorName: bleConfig.infoVendor,
+                deviceName: bleConfig.infoName,
+                deviceSerial: bleConfig.infoSerial
+            },
         };
 
         var bleInterface = bleNodes.registerNode(
@@ -26,7 +30,10 @@ module.exports = function (RED) {
             ['notify']
         );
 
-        bleProvider.setDeviceConfig(node.bleConfig.name);
+        bleProvider.setDeviceConfig(
+            node.bleConfig.name,
+            node.bleConfig.deviceInfo
+        );
 
         this.on('input', function bleInput(msg) {
             if (bleInterface.isInitialized) {

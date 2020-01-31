@@ -15,7 +15,11 @@ module.exports = function (RED) {
         node.characteristicUid = config.characteristic;
         node.bleConfig = {
             name: bleConfig.name,
-            advertisement: bleConfig.advertisement,
+            deviceInfo: {
+                vendorName: bleConfig.infoVendor,
+                deviceName: bleConfig.infoName,
+                deviceSerial: bleConfig.infoSerial
+            },
         };
 
         bleNodes.registerNode(
@@ -31,7 +35,10 @@ module.exports = function (RED) {
             ['write', 'writeWithoutResponse']
         );
 
-        bleProvider.setDeviceConfig(node.bleConfig.name);
+        bleProvider.setDeviceConfig(
+            node.bleConfig.name,
+            node.bleConfig.deviceInfo
+        );
 
         this.on('close', function bleInputClose() {
             bleNodes.destroyNode(node.id);

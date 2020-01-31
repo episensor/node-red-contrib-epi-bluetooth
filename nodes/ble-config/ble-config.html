@@ -3,16 +3,53 @@
         category: 'config',
         defaults: {
             name: { value: 'Bluetooth Device', required: true },
+            infoVendor: { required: false },
+            infoVendorType: { required: false },
+            infoName: { required: false },
+            infoNameType: { required: false },
+            infoSerial: { required: false },
+            infoSerialType: { required: false },
         },
         label: function() {
             return 'BLE device: ' + this.name;
         },
+        oneditprepare: function() {
+            $(".bleInfo").each(function() {
+                var $input = $(this);
+                var typeInputId = $input.prop('id') + 'Type';
+
+                $input.typedInput({
+                    default: 'str',
+                    types: ['str', 'global'],
+                    typeField: $('#' + typeInputId)
+                });
+            });
+        }
     });
 </script>
 
 <script type="text/x-red" data-template-name="ble-config">
     <div class="form-row">
-        <label for="node-config-input-name">Name</label>
+        <label for="node-config-input-name">Advert. Name</label>
         <input type="text" id="node-config-input-name" />
     </div>
+
+    <div class="form-row">
+        <label for="node-config-input-infoVendor">Vendor Name</label>
+        <input type="text" id="node-config-input-infoVendor" class="bleInfo" />
+        <input type="hidden" id="node-config-input-infoVendorType" />
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-infoName">Device Name</label>
+        <input type="text" id="node-config-input-infoName" class="bleInfo" />
+        <input type="hidden" id="node-config-input-infoNameType" />
+    </div>
+
+    <div class="form-row">
+        <label for="node-config-input-infoSerial">Device Serial</label>
+        <input type="text" id="node-config-input-infoSerial" class="bleInfo" />
+        <input type="hidden" id="node-config-input-infoSerialType" />
+    </div>
 </script>
+
