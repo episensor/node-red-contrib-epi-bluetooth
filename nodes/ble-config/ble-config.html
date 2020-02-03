@@ -11,7 +11,7 @@
             infoSerialType: { required: false },
         },
         label: function() {
-            return 'BLE device: ' + this.name;
+            return this.name;
         },
         oneditprepare: function() {
             $(".bleInfo").each(function() {
