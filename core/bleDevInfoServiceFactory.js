@@ -1,22 +1,7 @@
-var DEVICE_INFO_SERVICE_UUID = '0x180A';
-var DEVICE_VENDOR_CHAR_UUID = '0x2A29';
-var DEVICE_NAME_CHAR_UUID = '0x2A24';
-var DEVICE_SERIAL_CHAR_UUID = '0x2A25';
-
-function createReadCallback(bleno, value) {
-    return function (offset, callback) {
-        var valBuffer = Buffer.from(value, 'utf-8');
-
-        if (offset >= valBuffer.length) {
-            callback(bleno.Characteristic.RESULT_INVALID_OFFSET, null);
-        } else {
-            var valueSlice = value.slice(offset);
-            var valueSliceBuffer = Buffer.from(valueSlice, 'utf-8');
-
-            callback(bleno.Characteristic.RESULT_SUCCESS, valueSliceBuffer);
-        }
-    }
-}
+var DEVICE_INFO_SERVICE_UUID = '180a';
+var DEVICE_VENDOR_CHAR_UUID = '2a29';
+var DEVICE_NAME_CHAR_UUID = '2a24';
+var DEVICE_SERIAL_CHAR_UUID = '2a25';
 
 function BleDevInfoServiceFactory() { }
 
@@ -36,9 +21,7 @@ BleDevInfoServiceFactory.prototype.createService = function(bleno, info) {
             new bleno.Characteristic({
                 uuid: DEVICE_VENDOR_CHAR_UUID,
                 properties: ['read'],
-                callbacks: {
-                    onReadRequest: createReadCallback(bleno, info.vendorName)
-                }
+                value: Buffer.from(info.vendorName, 'utf-8')
             })
         );
     }
@@ -49,9 +32,7 @@ BleDevInfoServiceFactory.prototype.createService = function(bleno, info) {
             new bleno.Characteristic({
                 uuid: DEVICE_NAME_CHAR_UUID,
                 properties: ['read'],
-                callbacks: {
-                    onReadRequest: createReadCallback(bleno, info.deviceName)
-                }
+                value: Buffer.from(info.deviceName, 'utf-8')
             })
         );
     }
@@ -62,9 +43,7 @@ BleDevInfoServiceFactory.prototype.createService = function(bleno, info) {
             new bleno.Characteristic({
                 uuid: DEVICE_SERIAL_CHAR_UUID,
                 properties: ['read'],
-                callbacks: {
-                    onReadRequest: createReadCallback(bleno, info.deviceSerial)
-                }
+                value: Buffer.from(info.deviceSerial, 'utf-8')
             })
         );
     }

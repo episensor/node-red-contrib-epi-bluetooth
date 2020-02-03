@@ -19,7 +19,9 @@ module.exports = function(RED) {
             var fieldValue = n[field];
 
             if (fieldType === 'global') {
-                _this[field] = RED.util.parseContextStore(fieldValue);
+                var contextField = RED.util.parseContextStore(fieldValue);
+
+                _this[field] = _this.context().global.get(contextField.key, contextField.store);
             } else if (fieldType === 'str') {
                 _this[field] = fieldValue;
             }
