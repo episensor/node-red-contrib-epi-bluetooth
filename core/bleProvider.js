@@ -32,7 +32,7 @@ BleProvider.prototype.setDeviceConfig = function(name, deviceInfo) {
 BleProvider.prototype.initialize = function() {
     var _this = this;
 
-    return new Promise(function initializeHandler(resolve, reject) {
+    return new Promise(function initializeHandler(resolve) {
         var initialize = function() {
             // If bleno is not instantiated yet - try to create it and wait for powerOn
             if (!_this.isAdapterPowered) {
@@ -45,6 +45,7 @@ BleProvider.prototype.initialize = function() {
                     _this._setup(_this.name, _this.deviceInfo)
                         .then(function setupComplete() {
                             _this.nodeRed.log.info('BleProvider: Services and Characteristics registerd.');
+                            _this.nodeRed.log.info('BleProvider: Started advertising as ' + _this.name + '.');
                         })
                         .then(resolve);
                 });
@@ -91,20 +92,32 @@ BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb) {
             _this.isAdapterPowered = true;
 
             if (adapterPoweredOnCb) {
+                _this.nodeRed.log.info('BleProvider: BT Adepter PoweredOn!');
+
                 adapterPoweredOnCb();
             }
         };
         if (state === 'poweredOff') {
+            _this.nodeRed.log.info('BleProvider: BT Adepter PoweredOff!');
+
             _this.isAdapterPowered = false;
         };
     });
 
-    _this.bleno.on('accept', function bleAccepted() {
+    _this.bleno.on('accept', function bleAccepted(clientAddress) {
+        _this.nodeRed.log.info('BleProvider: Client connected! ' + (clientAddress ? ('Address: ' + clientAddress) : ''));
+
         this.isConnected = true;
     });
 
-    _this.bleno.on('disconnect', function bleDisconnected() {
+    _this.bleno.on('disconnect', function bleDisconnected(clientAddress) {
+        _this.nodeRed.log.info('BleProvider: Client disconnected. ' + (clientAddress ? ('Address: ' + clientAddress) : ''));
+
         this.isConnected = false;
+    });
+
+    _this.bleno.on('advertisingStop', function bleAdvertStopped() {
+        _this.nodeRed.log.info('BleProvider: Advertising stopped.');
     });
 }
 
