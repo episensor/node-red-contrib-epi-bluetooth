@@ -76,7 +76,7 @@ BleProvider.prototype.initialize = function() {
     });
 }
 
-BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb) {
+BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb, failedCb) {
     var _this = this;
 
     // When reinitializing - remove the previous event listeners
@@ -84,41 +84,47 @@ BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb) {
         _this.bleno.removeAllListeners();
     }
 
-    _this.bleno = new Bleno();
+    try {
+        this.bleno = new Bleno();
 
-    // Bleno Event Handlers ---------------------
-    _this.bleno.on('stateChange', function bleStateChange(state) {
-        if (state === 'poweredOn') {
-            _this.isAdapterPowered = true;
+        // Bleno Event Handlers ---------------------
+        _this.bleno.on('stateChange', function bleStateChange(state) {
+            if (state === 'poweredOn') {
+                _this.isAdapterPowered = true;
 
-            if (adapterPoweredOnCb) {
-                _this.nodeRed.log.info('BleProvider: BT Adepter PoweredOn!');
+                if (adapterPoweredOnCb) {
+                    _this.nodeRed.log.info('BleProvider: BT Adepter PoweredOn!');
 
-                adapterPoweredOnCb();
-            }
-        };
-        if (state === 'poweredOff') {
-            _this.nodeRed.log.info('BleProvider: BT Adepter PoweredOff!');
+                    adapterPoweredOnCb();
+                }
+            };
+            if (state === 'poweredOff') {
+                _this.nodeRed.log.info('BleProvider: BT Adepter PoweredOff!');
 
-            _this.isAdapterPowered = false;
-        };
-    });
+                _this.isAdapterPowered = false;
+            };
+        });
 
-    _this.bleno.on('accept', function bleAccepted(clientAddress) {
-        _this.nodeRed.log.info('BleProvider: Client connected! ' + (clientAddress ? ('Address: ' + clientAddress) : ''));
+        _this.bleno.on('accept', function bleAccepted(clientAddress) {
+            _this.nodeRed.log.info('BleProvider: Client connected! ' + (clientAddress ? ('Address: ' + clientAddress) : ''));
 
-        this.isConnected = true;
-    });
+            this.isConnected = true;
+        });
 
-    _this.bleno.on('disconnect', function bleDisconnected(clientAddress) {
-        _this.nodeRed.log.info('BleProvider: Client disconnected. ' + (clientAddress ? ('Address: ' + clientAddress) : ''));
+        _this.bleno.on('disconnect', function bleDisconnected(clientAddress) {
+            _this.nodeRed.log.info('BleProvider: Client disconnected. ' + (clientAddress ? ('Address: ' + clientAddress) : ''));
 
-        this.isConnected = false;
-    });
+            this.isConnected = false;
+        });
 
-    _this.bleno.on('advertisingStop', function bleAdvertStopped() {
-        _this.nodeRed.log.info('BleProvider: Advertising stopped.');
-    });
+        _this.bleno.on('advertisingStop', function bleAdvertStopped() {
+            _this.nodeRed.log.info('BleProvider: Advertising stopped.');
+        });
+    } catch (exc) {
+        if (typeof failedCb === 'function') {
+            failedCb(exc);
+        }
+    }
 }
 
 BleProvider.prototype._setup = function(name, deviceInfo) {
