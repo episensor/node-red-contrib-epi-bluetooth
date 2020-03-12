@@ -138,8 +138,14 @@ BleProvider.prototype._setup = function(name, deviceInfo) {
                     _this.isAdvertising = false;
                 });
             }
+            
+            // If deviceInfo is provided - create service for exposing it
+            var deviceInfoService = deviceInfo ? 
+                _this.bleDevServiceFactory.createService(_this.bleno, deviceInfo) : null;
+            
+            var nodesDefs = Array.from(_this.bleNodes.nodes.values());            
+
             // Start advertising
-            const nodesDefs = Array.from(_this.bleNodes.nodes.values());            
             var startAdvertCb = function() {
                 _this.isAdvertising = true;
 
@@ -198,11 +204,8 @@ BleProvider.prototype._setup = function(name, deviceInfo) {
 
                 var services = commsServices;
 
-                // If deviceInfo is provided - create service for exposing it
-                // and merge it with other services
-                if (deviceInfo) {
-                    var deviceInfoService =
-                        _this.bleDevServiceFactory.createService(_this.bleno, deviceInfo);
+                // Merge the deviceInfoService with other if exists
+                if (deviceInfoService) {
                     services = services.concat([deviceInfoService]);
                 }
 
@@ -219,6 +222,7 @@ BleProvider.prototype._setup = function(name, deviceInfo) {
                 var serviceUids = _.chain(nodesDefs)
                     .map('service')
                     .uniq()
+                    .concat(deviceInfoService ? [deviceInfoService.uuid] : [])
                     .value();
                 _this.bleno.startAdvertising(name, serviceUids, startAdvertCb);
             }
