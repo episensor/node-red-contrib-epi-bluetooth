@@ -1,4 +1,5 @@
 var BleProvider = require('../../core/bleProvider');
+var BleNodes = require('../../core/bleNodes');
 
 module.exports = function(RED) {
     function BluetoothConfig(n) {
@@ -32,10 +33,15 @@ module.exports = function(RED) {
 
     // Initialize the Bluetooth Device
     RED.events.on('runtime-event', function runtimeHandler(ev) {
-        if (ev.id === 'runtime-deploy') {
-            var bleProvider = BleProvider.getBleProvider(RED);
+        if (ev.id === 'runtime-state') {
+            var nodes = BleNodes.getBleNodes();
 
-            bleProvider.initialize();
+            // Initialize BleProvider only when there are active BT nodes
+            if (nodes.nodes.size > 0) {
+                var bleProvider = BleProvider.getBleProvider(RED);                
+
+                bleProvider.initialize();
+            }
         }
     });
 }
