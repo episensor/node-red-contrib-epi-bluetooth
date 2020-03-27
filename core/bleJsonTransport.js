@@ -23,11 +23,11 @@ BleJsonTransport.prototype.chunkStream = function(serviceId, charId, onComplete,
                 result = JSON.parse(data);
             } catch (exc) {
                 onError('chunkStream: The received payload seeems to be malformed.');
-
+                
                 return false;
+            } finally {
+                _this.chunks.clear();
             }
-
-            _this.chunks.clear();
             
             onComplete(result);
         } else {
