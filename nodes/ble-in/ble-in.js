@@ -20,6 +20,7 @@ module.exports = function (RED) {
                 deviceName: bleConfig.infoName,
                 deviceSerial: bleConfig.infoSerial
             },
+            retryLimit: bleConfig.retryLimit
         };
 
         bleNodes.registerNode(
@@ -37,7 +38,8 @@ module.exports = function (RED) {
 
         bleProvider.setDeviceConfig(
             node.bleConfig.name,
-            node.bleConfig.deviceInfo
+            node.bleConfig.deviceInfo,
+            node.bleConfig.retryLimit
         );
 
         this.on('close', function bleInputClose() {

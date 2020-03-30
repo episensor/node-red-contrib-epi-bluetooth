@@ -21,16 +21,17 @@ var BleProvider = function(bleNodes, nodeRed) {
     this.nodeRed = nodeRed;
 
     this.reinitRetryInterval;
-    this.reinitAttempt = 0;
 };
 
-BleProvider.prototype.setDeviceConfig = function(name, deviceInfo) {
+BleProvider.prototype.setDeviceConfig = function(name, deviceInfo, reinitLimit) {
     this.name = name || '!Undefined Name';
     this.deviceInfo = deviceInfo;
+    this.reinitLimit = reinitLimit;
 }
 
 BleProvider.prototype.initialize = function() {
     var _this = this;
+    var timesRetried = 0;
 
     return new Promise(function initializeHandler(resolve) {
         var initialize = function() {
@@ -66,7 +67,24 @@ BleProvider.prototype.initialize = function() {
 
         // If the adapter won't power on within REINIT_TIMEOUT - retry
         _this.reinitRetryInterval = setInterval(function reinitCb() {
-            _this.nodeRed.log.info('BleProvider: Failed to initialize Bluetooth, reinitializing...');
+            // If retry limit is set - try to reinitialzie only X times
+            // otherwise try reinitialise infinitely
+            if (_this.reinitLimit > 0) {
+                timesRetried++;
+
+                if (timesRetried > _this.reinitLimit) {
+                    clearInterval(_this.reinitRetryInterval);
+    
+                    _this.nodeRed.log.info('BleProvider: Reached reinitialization attempts limit, retries stopped.')
+    
+                    return;
+                } else {
+                    _this.nodeRed.log.info('BleProvider: Failed to initialize Bluetooth, reinitializing ' +
+                        '(attempt ' + timesRetried + ' of ' + _this.reinitLimit + ')...');
+                }
+            } else {
+                _this.nodeRed.log.info('BleProvider: Failed to initialize Bluetooth, reinitializing...');
+            }
 
             initialize();
         }, REINIT_TIMEOUT);

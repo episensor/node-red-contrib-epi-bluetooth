@@ -5,6 +5,7 @@ module.exports = function(RED) {
     function BluetoothConfig(n) {
         RED.nodes.createNode(this, n);
         this.name = n.name;
+        this.retryLimit = parseInt(n.retryLimit);
 
         var _this = this;
         // Copies the fields from the array
@@ -40,6 +41,8 @@ module.exports = function(RED) {
             var bleProvider = BleProvider.getBleProvider(RED); 
             
             if (nodes.nodes.size > 0) {
+                console.log('initialized');
+                
                 bleProvider.initialize();
             } else {
                 bleProvider.destroy();

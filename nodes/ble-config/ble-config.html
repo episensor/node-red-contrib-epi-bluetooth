@@ -3,6 +3,7 @@
         category: 'config',
         defaults: {
             name: { value: 'Bluetooth Device', required: true },
+            retryLimit: { value: 10, required: false },
             infoVendor: { required: false },
             infoVendorType: { required: false },
             infoName: { required: false },
@@ -29,6 +30,11 @@
 </script>
 
 <script type="text/x-red" data-template-name="ble-config">
+    <div class="form-row">
+        <label for="node-config-input-retryLimit">Retry Limit</label>
+        <input type="number" id="node-config-input-retryLimit" min="0" />
+    </div>
+
     <div class="form-row">
         <label for="node-config-input-name">Advert. Name</label>
         <input type="text" id="node-config-input-name" />
