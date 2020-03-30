@@ -76,13 +76,25 @@ BleProvider.prototype.initialize = function() {
     });
 }
 
+BleProvider.prototype.destroy = function() {
+    if (this.bleno) {
+        this.bleno.removeAllListeners();
+
+        this.bleno.disconnect();
+
+        this.bleno.stopAdvertising();
+
+        this.bleno.dispose();
+
+        this.bleno = null;
+    }
+}
+
 BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb, failedCb) {
     var _this = this;
 
-    // When reinitializing - remove the previous event listeners
-    if (_this.bleno) {
-        _this.bleno.removeAllListeners();
-    }
+    // Cleanup the previous instance
+    _this.destroy();
 
     try {
         this.bleno = new Bleno();
@@ -100,8 +112,12 @@ BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb, failedCb) 
             };
             if (state === 'poweredOff') {
                 _this.nodeRed.log.info('BleProvider: BT Adepter PoweredOff!');
-
+                
                 _this.isAdapterPowered = false;
+
+                _this.nodeRed.log.info('BleProvider: Cleaning up BT handlers...');
+                _this.destroy();
+                _this.nodeRed.log.info('BleProvider: Cleanup complete!');
             };
         });
 

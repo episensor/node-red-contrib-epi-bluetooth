@@ -21,7 +21,7 @@
     }
   },
   "dependencies": {
-    "@episensor/bleno": "^0.5.1-3",
+    "@episensor/bluetooth-hci-socket": "file:../node-bluetooth-hci-socket",
     "debug": "^4.1.1",
     "lodash": "^4.17.15",
     "uuid": "^3.3.3"

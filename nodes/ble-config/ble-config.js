@@ -37,10 +37,12 @@ module.exports = function(RED) {
             var nodes = BleNodes.getBleNodes();
 
             // Initialize BleProvider only when there are active BT nodes
+            var bleProvider = BleProvider.getBleProvider(RED); 
+            
             if (nodes.nodes.size > 0) {
-                var bleProvider = BleProvider.getBleProvider(RED);                
-
                 bleProvider.initialize();
+            } else {
+                bleProvider.destroy();
             }
         }
     });
