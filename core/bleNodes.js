@@ -4,6 +4,7 @@ var BleNodes = function(nodeRed) {
     this.nodes = new Map();
     this.nodeRed = nodeRed;
     this.services = [];
+    this.interfaces = new Map(); // Store interfaces by node ID
 
     this.callbacks = {
         onNodeAdded: function() { },
@@ -34,10 +35,13 @@ BleNodes.prototype.registerNode = function(
     });
     
     // Will be populated by the Provider Setup
-    var interface = {
+    var nodeInterface = {
         isInitialized: false,
         notify: function() { }
     };
+    
+    // Store the interface for later retrieval
+    this.interfaces.set(nodeId, nodeInterface);
 
     // Find the service
     var serviceDef = _.find(this.services, { uid: serviceUid });
@@ -58,7 +62,7 @@ BleNodes.prototype.registerNode = function(
             uid: characteristicUid,
             callbacks: callbacks || { },
             properties: properties || [ ],
-            interface: interface,
+            interface: nodeInterface,
         });
     }
 
@@ -69,7 +73,14 @@ BleNodes.prototype.registerNode = function(
         nodeId,
     );
 
-    return interface;
+    return nodeInterface;
+}
+
+/**
+ * Get the interface for a specific node
+ */
+BleNodes.prototype.getNodeInterface = function(nodeId) {
+    return this.interfaces.get(nodeId);
 }
 
 BleNodes.prototype.destroyNode = function(nodeUid) {
@@ -95,13 +106,17 @@ BleNodes.prototype.destroyNode = function(nodeUid) {
         }
 
         this.nodes.delete(nodeUid);
+        this.interfaces.delete(nodeUid); // Clean up the interface
     }
 }
 
 var instance = null;
-module.exports.getBleNodes = function(RED) {
-    if (!instance) {
-        instance = new BleNodes(RED);
+module.exports = {
+    BleNodes: BleNodes,
+    getBleNodes: function(RED) {
+        if (!instance) {
+            instance = new BleNodes(RED);
+        }
+        return instance;
     }
-    return instance;
 };

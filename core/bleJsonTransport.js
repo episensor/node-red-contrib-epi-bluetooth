@@ -21,20 +21,19 @@ BleJsonTransport.prototype.chunkStream = function(serviceId, charId, onComplete,
 
             try {
                 result = JSON.parse(data);
+                _this.chunks.delete(key); // Clear the chunks for this key
+                onComplete(result);
             } catch (exc) {
-                onError('chunkStream: The received payload seeems to be malformed.');
-                
+                _this.chunks.delete(key); // Clear the chunks for this key on error
+                onError('chunkStream: The received payload seems to be malformed: ' + exc.message);
                 return false;
-            } finally {
-                _this.chunks.clear();
             }
             
-            onComplete(result);
+            return true;
         } else {
             _this.chunks.set(key, data);
+            return true;
         }
-
-        return true;
     }
 };
 

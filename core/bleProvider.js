@@ -33,7 +33,7 @@ BleProvider.prototype.initialize = function() {
     var _this = this;
     var timesRetried = 0;
 
-    return new Promise(function initializeHandler(resolve) {
+    return new Promise(function initializeHandler(resolve, reject) {
         var initialize = function() {
             // If bleno is not instantiated yet - try to create it and wait for powerOn
             if (!_this.isAdapterPowered) {
@@ -48,7 +48,14 @@ BleProvider.prototype.initialize = function() {
                             _this.nodeRed.log.info('BleProvider: Services and Characteristics registerd.');
                             _this.nodeRed.log.info('BleProvider: Started advertising as ' + _this.name + '.');
                         })
-                        .then(resolve);
+                        .then(resolve)
+                        .catch(function(err) {
+                            _this.nodeRed.log.error('BleProvider: Error during setup: ' + err.message);
+                            reject(err);
+                        });
+                }, function failedCb(err) {
+                    _this.nodeRed.log.error('BleProvider: Failed to initialize Bluetooth: ' + err.message);
+                    // Don't reject here, let the retry mechanism handle it
                 });
             // If an instance is already present - just recreate the Services / Characteristics
             } else {
@@ -59,7 +66,11 @@ BleProvider.prototype.initialize = function() {
                     .then(function reSetupComplete() {
                         _this.nodeRed.log.info('BleProvider: Services and Characteristics re-registerd.');
                     })
-                    .then(resolve);
+                    .then(resolve)
+                    .catch(function(err) {
+                        _this.nodeRed.log.error('BleProvider: Error during re-setup: ' + err.message);
+                        reject(err);
+                    });
             }
         };
 
@@ -76,6 +87,9 @@ BleProvider.prototype.initialize = function() {
                     clearInterval(_this.reinitRetryInterval);
     
                     _this.nodeRed.log.info('BleProvider: Reached reinitialization attempts limit, retries stopped.')
+                    
+                    // Reject the promise after all retries have failed
+                    reject(new Error('Failed to initialize Bluetooth after ' + _this.reinitLimit + ' attempts'));
     
                     return;
                 } else {
@@ -136,6 +150,10 @@ BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb, failedCb) 
                 _this.nodeRed.log.info('BleProvider: Cleaning up BT handlers...');
                 _this.destroy();
                 _this.nodeRed.log.info('BleProvider: Cleanup complete!');
+                
+                if (failedCb) {
+                    failedCb(new Error('Bluetooth adapter powered off'));
+                }
             };
         });
 
@@ -154,12 +172,43 @@ BleProvider.prototype._initializeBleno = function(adapterPoweredOnCb, failedCb) 
         _this.bleno.on('advertisingStop', function bleAdvertStopped() {
             _this.nodeRed.log.info('BleProvider: Advertising stopped.');
         });
-    } catch (exc) {
-        if (typeof failedCb === 'function') {
-            failedCb(exc);
+    } catch (err) {
+        _this.nodeRed.log.error('BleProvider: Error initializing Bleno: ' + err.message);
+        if (failedCb) {
+            failedCb(err);
         }
     }
 }
+
+BleProvider.prototype._startAdvertising = function(name, serviceUids, advertisement) {
+    var _this = this;
+    
+    return new Promise(function(resolve, reject) {
+        var advertisingTimeout = setTimeout(function() {
+            reject(new Error('Advertising timeout after 5 seconds'));
+        }, 5000);
+        
+        var startAdvertCb = function(err) {
+            clearTimeout(advertisingTimeout);
+            
+            if (err) {
+                _this.nodeRed.log.error('BleProvider: Error starting advertising: ' + err);
+                reject(err);
+                return;
+            }
+            
+            _this.isAdvertising = true;
+            resolve();
+        };
+        
+        if (typeof advertisement !== 'undefined') {
+            var eirPayload = _this._createEIRPayload(name, advertisement);
+            _this.bleno.startAdvertisingWithEIRData(eirPayload.advertisement, eirPayload.scanData, startAdvertCb);
+        } else {
+            _this.bleno.startAdvertising(name, serviceUids, startAdvertCb);
+        }
+    });
+};
 
 BleProvider.prototype._setup = function(name, deviceInfo) {
     var _this = this;
@@ -179,89 +228,85 @@ BleProvider.prototype._setup = function(name, deviceInfo) {
             
             var nodesDefs = Array.from(_this.bleNodes.nodes.values());            
 
-            // Start advertising
-            var startAdvertCb = function() {
-                _this.isAdvertising = true;
+            // Build service/characteristics structure
+            var commsServices = _this.bleNodes.services.map(function serviceMapIterator(serviceDef) {
+                var characteristics =
+                    serviceDef.characteristics.map(function characteristicMapIterator(charDef) {
+                        // Define callbacks and properties based on available callbacks
+                        var callbacks = {};
 
-                // Build service/characteristics structure
-                var commsServices = _this.bleNodes.services.map(function serviceMapIterator(serviceDef) {
-                    var characteristics =
-                        serviceDef.characteristics.map(function characteristicMapIterator(charDef) {
-                            // Define callbacks and properties based on available callbacks
-                            var callbacks = {};
-
-                            // Write Handler
-                            if (charDef.callbacks.onWriteRequest) {
-                                var appendChunk = _this.bleJsonTransport.chunkStream(
-                                    serviceDef.uid,
-                                    charDef.uid,
-                                    // Pass the write handler to Chunk Stream Complete CB
-                                    charDef.callbacks.onWriteRequest,
-                                    function onChunkStreamError(reason) {
-                                        _this.nodeRed.log.error(reason);
-                                    }
-                                )
-                                callbacks.onWriteRequest = function providerWriteRequest(data, offset, wR, cb) {
-                                    var isOk = appendChunk(data);
-                                    cb(
-                                        isOk ?
-                                            _this.bleno.Characteristic.RESULT_SUCCESS :
-                                            _this.bleno.Characteristic.RESULT_UNLIKELY_ERROR
-                                    );
+                        // Write Handler
+                        if (charDef.callbacks.onWriteRequest) {
+                            var appendChunk = _this.bleJsonTransport.chunkStream(
+                                serviceDef.uid,
+                                charDef.uid,
+                                // Pass the write handler to Chunk Stream Complete CB
+                                charDef.callbacks.onWriteRequest,
+                                function onChunkStreamError(reason) {
+                                    _this.nodeRed.log.error(reason);
                                 }
+                            )
+                            callbacks.onWriteRequest = function providerWriteRequest(data, offset, wR, cb) {
+                                var isOk = appendChunk(data);
+                                cb(
+                                    isOk ?
+                                        _this.bleno.Characteristic.RESULT_SUCCESS :
+                                        _this.bleno.Characteristic.RESULT_UNLIKELY_ERROR
+                                );
                             }
+                        }
 
-                            var charConfig = Object.assign({}, callbacks, {
-                                uuid: charDef.uid,
-                                properties: charDef.properties,
-                            });
-                            var characteristic = new _this.bleno.Characteristic(charConfig);
-
-                            // Override interface
-                            charDef.interface.notify = function(data) {
-                                _this.bleJsonTransport.chunkify(data, function chunkifyIterator(jsonChunkBuffer) {
-                                    if (characteristic.updateValueCallback) {
-                                        characteristic.updateValueCallback(jsonChunkBuffer);
-                                    }
-                                });
-                            }
-                            charDef.interface.isInitialized = true;
-
-                            return characteristic;
+                        var charConfig = Object.assign({}, callbacks, {
+                            uuid: charDef.uid,
+                            properties: charDef.properties,
                         });
+                        var characteristic = new _this.bleno.Characteristic(charConfig);
 
-                    return new _this.bleno.PrimaryService({
-                        uuid: serviceDef.uid,
-                        characteristics: characteristics,
+                        // Override interface
+                        charDef.interface.notify = function(data) {
+                            _this.bleJsonTransport.chunkify(data, function chunkifyIterator(jsonChunkBuffer) {
+                                if (characteristic.updateValueCallback) {
+                                    characteristic.updateValueCallback(jsonChunkBuffer);
+                                }
+                            });
+                        }
+                        charDef.interface.isInitialized = true;
+
+                        return characteristic;
                     });
+
+                return new _this.bleno.PrimaryService({
+                    uuid: serviceDef.uid,
+                    characteristics: characteristics,
                 });
+            });
 
-                var services = commsServices;
+            var services = commsServices;
 
-                // Merge the deviceInfoService with other if exists
-                if (deviceInfoService) {
-                    services = services.concat([deviceInfoService]);
-                }
-
-                _this.bleno.setServices(services, function() {
-                    resolve();
-                });
+            // Merge the deviceInfoService with other if exists
+            if (deviceInfoService) {
+                services = services.concat([deviceInfoService]);
             }
 
-            if (typeof advertisement !== 'undefined') {
-                var eirPayload = _this._createEIRPayload(name, advertisement);
-
-                _this.bleno.startAdvertisingWithEIRData(eirPayload.advertisement, eirPayload.scanData, startAdvertCb);
-            } else {
+            _this.bleno.setServices(services, function(err) {
+                if (err) {
+                    _this.nodeRed.log.error('BleProvider: Error setting services: ' + err);
+                    reject(err);
+                    return;
+                }
+                
                 var serviceUids = _.chain(nodesDefs)
                     .map('service')
                     .uniq()
                     .concat(deviceInfoService ? [deviceInfoService.uuid] : [])
                     .value();
-                _this.bleno.startAdvertising(name, serviceUids, startAdvertCb);
-            }
+                
+                _this._startAdvertising(name, serviceUids)
+                    .then(resolve)
+                    .catch(reject);
+            });
         } else {
-            reject('Can\'t start advertising - adapter is not powered');
+            reject(new Error('Can\'t start advertising - adapter is not powered'));
         }
     });
 }
